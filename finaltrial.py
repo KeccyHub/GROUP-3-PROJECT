@@ -166,11 +166,11 @@ def play_video_with_audio(video_path, audio_path):
 
     val = tk.IntVar(g3)
 
-    end_time = tk.Label(control_frame, height=2, text=str(datetime.timedelta(seconds=0)))
-    end_time.grid(row=0, column=0, padx=2)
+    end_time = tk.Label(g3, text=str(datetime.timedelta(seconds=0)))
+    end_time.pack(side="left")
 
-    slider = tk.Scale(control_frame, variable=val,from_=0, to=0, orient="horizontal", command=seek)
-    slider.grid(row=0, column=4, padx=2,columnspan=9, sticky="ew")
+    slider = tk.Scale(g3, variable=val,from_=0, to=0, orient="horizontal", command=seek)
+    slider.pack(side="left", fill="x", expand=True)
 
     backward = tk.PhotoImage(file="backward.png")
     back_btn = tk.Button(control_frame, image=backward, command= lambda: skip(-10))
