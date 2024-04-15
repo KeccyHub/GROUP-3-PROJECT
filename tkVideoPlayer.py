@@ -148,7 +148,7 @@ class TkinterVideo(tk.Label):
 
                 while self._load_thread == current_thread and not self._stop:
                     if self._seek: # seek to specific second
-                        self._container.seek(self._seek_sec*1000000 , whence='time', backward=True, any_frame=False) # the seek time is given in av.time_base, the multiplication is to correct the frame
+                        self._container.seek(self._seek_sec*1000000, backward=True, any_frame=False) # the seek time is given in av.time_base, the multiplication is to correct the frame
                         self._seek = False
                         self._frame_number = self._video_info["framerate"] * self._seek_sec
 
