@@ -36,22 +36,6 @@ def open_video():
         video_entry.insert(0, file_path)
         video_preview.config(image=get_video_preview(file_path))
 
-
-def convert_and_play():
-    video_path = video_entry.get()
-    if not video_path:
-        return
-
-    # Get the audio file path
-    audio_path = convert_to_audio(video_path)
-
-    if audio_path:
-        # Play video with the generated audio
-        play_video_with_audio(video_path, audio_path)
-    
-
-
-
 def convert_to_audio(video_path):
     video = VideoFileClip(video_path)
     audio_path = video_path.replace('.mp4', '_audio.mp3')  # Save audio as MP3
@@ -64,6 +48,19 @@ def convert_to_audio(video_path):
     except Exception as e:
         print("Error converting to audio:", str(e))
         return None
+
+
+def play_button():
+    video_path = video_entry.get()
+    if not video_path:
+        return
+
+    # Get the audio file path
+    audio_path = convert_to_audio(video_path)
+
+    if audio_path:
+        # Play video with the generated audio
+        play_video_with_audio(video_path, audio_path)
 
 
 def play_video_with_audio(video_path, audio_path):
@@ -271,7 +268,7 @@ open_button.grid(row=0, column=2, padx=10, pady=10)
 video_preview = tk.Label(root, bg="#000000")
 video_preview.pack(pady=20)
 
-convert_button = tk.Button(frame, text="Convert and Play", fg="white", bg="#6c3483", font=("calibri", 12, ("bold")), command=convert_and_play)
+convert_button = tk.Button(frame, text="Convert and Play", fg="white", bg="#6c3483", font=("calibri", 12, ("bold")), command=play_button)
 convert_button.grid(row=0, column=3, padx=10, pady=10)
 
 
