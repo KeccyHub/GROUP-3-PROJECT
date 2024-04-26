@@ -28,15 +28,19 @@ new_position = None
 
 
 def open_video():
-    global video_entry, video_preview
+    global video_entry, video_preview, file_path
     file_path = filedialog.askopenfilename(title="Select Video File",
-                                           filetypes=[("Video files", "*.mp4;*.avi;*.mov")])
+                                           filetypes=[("Video files", "*.mp4;*.avi;*.mov; *.mkv; *.wmv")])
     if file_path:
         video_entry.delete(0, tk.END)
         video_entry.insert(0, file_path)
         video_preview.config(image=get_video_preview(file_path))
 
 def convert_to_audio(video_path):
+    global file_path
+    video = VideoFileClip(video_path)
+    audio_extension = "_audio.mp3"
+    audio_path = video_path.replace(file_path, audio_extension)  # Save audio as MP3
     video = VideoFileClip(video_path)
     audio_path = video_path.replace('.mp4', '_audio.mp3')  # Save audio as MP3
 
@@ -49,7 +53,6 @@ def convert_to_audio(video_path):
         print("Error converting to audio:", str(e))
         return None
 
-
 def play_button():
     video_path = video_entry.get()
     if not video_path:
@@ -61,7 +64,6 @@ def play_button():
     if audio_path:
         # Play video with the generated audio
         play_video_with_audio(video_path, audio_path)
-
 
 def play_video_with_audio(video_path, audio_path):
     global video_player, backward, forward, quit_image, current_time, play_image, pause_image, sound_enabled, sound_off_image, sound_on_image, stop_btn, stop_image, vol_up, vol_down
@@ -94,7 +96,7 @@ def play_video_with_audio(video_path, audio_path):
     
     g3.protocol("WM_DELETE_WINDOW", on_close)
 
-    control_frame = tk.Frame(g3, bg="#636363", width=1)
+    control_frame = tk.Frame(g3, bg="#f0f0f0", width=1)
     control_frame.pack(fill="both", side=tk.BOTTOM, padx=2, pady=1)
 
     def play_video():
@@ -120,7 +122,7 @@ def play_video_with_audio(video_path, audio_path):
         if quit_image:
             video_player.stop()
             pygame.mixer.music.stop()
-            video_player.destroy()
+            video_player.quit()
             root.destroy()  # To completely close the application
     
     def stop_video():
@@ -128,7 +130,7 @@ def play_video_with_audio(video_path, audio_path):
         if stop_image:
             video_player.stop()
             pygame.mixer.music.stop()
-            video_player.destroy()
+            video_player.quit()
             root.deiconify()
 
     def duration(event):
@@ -154,7 +156,7 @@ def play_video_with_audio(video_path, audio_path):
         pygame.mixer.music.play(start=int(new_position))
             
 
-    def video_ended(event):
+    def video_ended():
         slider.set(slider["to"])
         video_player.stop()
         pygame.mixer.music.stop()
@@ -163,32 +165,27 @@ def play_video_with_audio(video_path, audio_path):
 
     val = tk.IntVar(g3)
 
-    end_time = tk.Label(control_frame, height=2, text=str(datetime.timedelta(seconds=0)))
-    end_time.grid(row=0, column=0, padx=2)
+    end_time = tk.Label(g3, text=str(datetime.timedelta(seconds=0)))
+    end_time.pack(side="left")
 
-    slider = tk.Scale(control_frame, variable=val, from_=0, to=0, orient="horizontal", command=seek)
-    slider.grid(row=0, column=1, padx=2,columnspan=25, sticky="ew")
+    slider = tk.Scale(g3, variable=val,from_=0, to=0, orient="horizontal", command=seek)
+    slider.pack(side="left", fill="x", expand=True)
+
+    start_time = tk.Label(g3, text=str(datetime.timedelta(seconds=0)))
+    start_time.pack(side="left")
 
     backward = tk.PhotoImage(file="backward.png")
-    back_btn = tk.Button(control_frame, image=backward, command= lambda: skip(-5))
-    back_btn.grid(row=1, column=0, columnspan=1, padx=40, sticky="ew")
-
-    play_image = tk.PhotoImage(file="play.png")
-    play_btn = tk.Button(control_frame, image=play_image, command=play_video)
-    play_btn.grid(row=1, column=1, columnspan=1, padx=40, sticky="ew")
-    
-    pause_image = tk.PhotoImage(file="pause.png")
-    pause_btn = tk.Button(control_frame, image=pause_image, command= pause_video)
-    pause_btn.grid(row=1, column=2, columnspan=1, padx=40, sticky="ew")
+    back_btn = tk.Button(control_frame, image=backward, command= lambda: skip(-10))
+    back_btn.grid(row=1, column=0, columnspan=1, padx=10, sticky="ew")
 
     forward = tk.PhotoImage(file="forward.png")
-    forward_btn = tk.Button(control_frame, image=forward, command= lambda: skip(5))
-    forward_btn.grid(row=1, column=3, columnspan=1, padx=40, sticky="ew")
+    forward_btn = tk.Button(control_frame, image=forward, command= lambda: skip(10))
+    forward_btn.grid(row=1, column=1, columnspan=1, padx=10, sticky="ew")
     
     sound_on_image = tk.PhotoImage(file="sound_on.png")
     sound_off_image = tk.PhotoImage(file="sound_off.png")
     sound_btn = tk.Button(control_frame, image=sound_on_image, command=toggle_sound)
-    sound_btn.grid(row=1, column=4, columnspan=1, padx=40, sticky="ew")
+    sound_btn.grid(row=1, column=2, columnspan=1, padx=10, sticky="ew")
 
     def decrease_volume():
         current_volume = pygame.mixer.music.get_volume()
@@ -199,23 +196,32 @@ def play_video_with_audio(video_path, audio_path):
         current_volume = pygame.mixer.music.get_volume()
         if current_volume < 1:
             pygame.mixer.music.set_volume(min(1, current_volume + 0.1))
+
+    pause_image = tk.PhotoImage(file="pause.png")
+    pause_btn = tk.Button(control_frame, image=pause_image, command= pause_video)
+    pause_btn.grid(row=1, column=3, columnspan=1, padx=10, sticky="ew")
+
+    
+    play_image = tk.PhotoImage(file="play.png")
+    play_btn = tk.Button(control_frame, image=play_image, command=play_video)
+    play_btn.grid(row=1, column=4, columnspan=1, padx=10, sticky="ew")
     
     vol_down = tk.PhotoImage(file="decrease_volume.png")
     volume_down_btn = tk.Button(control_frame, image=vol_down, command=decrease_volume)
-    volume_down_btn.grid(row=1, column=5, columnspan=1, padx=40, sticky="ew")
+    volume_down_btn.grid(row=1, column=5, columnspan=1, padx=10, sticky="ew")
     
     vol_up = tk.PhotoImage(file="increase_volume.png")
     volume_up_btn = tk.Button(control_frame, image=vol_up, command=increase_volume)
-    volume_up_btn.grid(row=1, column=6, columnspan=1, padx=40, sticky="ew")
+    volume_up_btn.grid(row=1, column=6, columnspan=1, padx=10, sticky="ew")
 
     quit_image = tk.PhotoImage(file="quit.png")
     quit_btn = tk.Button(control_frame, image=quit_image, command= quit_video)
-    quit_btn.grid(row=1, column=7, columnspan=1, padx=40, sticky="ew")
+    quit_btn.grid(row=1, column=7, columnspan=1, padx=10, sticky="ew")
 
     
     stop_image = tk.PhotoImage(file="stop.png")
     stop_btn = tk.Button(control_frame, image=stop_image, command=stop_video)
-    stop_btn.grid(row=1, column=8, columnspan=1,padx=40, sticky="ew")
+    stop_btn.grid(row=1, column=8, columnspan=1,padx=20, sticky="ew")
    
     video_player.bind("<<Duration>>", lambda event: duration(event))
     video_player.bind("<<SecondChanged>>", update_slide)
@@ -249,6 +255,9 @@ img = tk.PhotoImage(file="logo.png")
 logo_label = tk.Label(root, image=img, bg="#000000")
 logo_label.pack(expand=True, fill="both", pady=60)
 
+icon = tk.PhotoImage(file="logo.png")
+root.iconphoto(True, icon)
+
 root.configure(bg="#000000")
 
 # UI Elements
@@ -268,6 +277,7 @@ open_button.grid(row=0, column=2, padx=10, pady=10)
 video_preview = tk.Label(root, bg="#000000")
 video_preview.pack(pady=20)
 
+convert_button = tk.Button(frame, text="Play", fg="white", bg="#6c3483", font=("calibri", 12, ("bold")), command=convert_and_play)
 convert_button = tk.Button(frame, text="Convert and Play", fg="white", bg="#6c3483", font=("calibri", 12, ("bold")), command=play_button)
 convert_button.grid(row=0, column=3, padx=10, pady=10)
 
@@ -276,5 +286,5 @@ convert_button.grid(row=0, column=3, padx=10, pady=10)
 
 
 
-root.mainloop()
+root.tk.mainloop()
 
