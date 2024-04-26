@@ -25,18 +25,31 @@ vol_down = None
 current_time = None
 quit_btn = None
 new_position = None
-current_time_label = None
 
 
 def open_video():
-    global video_entry, video_preview
+    global video_entry, video_preview, file_path
     file_path = filedialog.askopenfilename(title="Select Video File",
-                                           filetypes=[("Video files", "*.mp4;*.avi;*.mov")])
+                                           filetypes=[("Video files", "*.mp4;*.avi;*.mov; *.mkv; *.wmv")])
     if file_path:
         video_entry.delete(0, tk.END)
         video_entry.insert(0, file_path)
         video_preview.config(image=get_video_preview(file_path))
 
+def convert_to_audio(video_path):
+    global file_path
+    video = VideoFileClip(video_path)
+    audio_extension = "_audio.mp3"
+    audio_path = video_path.replace(file_path, audio_extension)  # Save audio as MP3
+
+    try:
+        audio = video.audio
+        audio.write_audiofile(audio_path, fps=44100)
+        audio.close()
+        return audio_path
+    except Exception as e:
+        print("Error converting to audio:", str(e))
+        return None
 
 def convert_and_play():
     video_path = video_entry.get()
@@ -51,24 +64,8 @@ def convert_and_play():
         play_video_with_audio(video_path, audio_path)
     
 
-
-
-def convert_to_audio(video_path):
-    video = VideoFileClip(video_path)
-    audio_path = video_path.replace('.mp4', '_audio.mp3')  # Save audio as MP3
-
-    try:
-        audio = video.audio
-        audio.write_audiofile(audio_path, fps=44100)
-        audio.close()
-        return audio_path
-    except Exception as e:
-        print("Error converting to audio:", str(e))
-        return None
-
-
 def play_video_with_audio(video_path, audio_path):
-    global current_time_label, video_player, backward, forward, quit_image, current_time, play_image, pause_image, sound_enabled, sound_off_image, sound_on_image, stop_btn, stop_image, vol_up, vol_down
+    global video_player, backward, forward, quit_image, current_time, play_image, pause_image, sound_enabled, sound_off_image, sound_on_image, stop_btn, stop_image, vol_up, vol_down
     root.withdraw()  # Hide the main window during video playback
     g3 = tk.Toplevel()
     g3.title("G3 Video Player")
@@ -104,7 +101,6 @@ def play_video_with_audio(video_path, audio_path):
     def play_video():
         video_player.play()
         pygame.mixer.music.unpause()
-        
     
     def pause_video():
         video_player.pause()
@@ -115,7 +111,7 @@ def play_video_with_audio(video_path, audio_path):
         sound_enabled = not sound_enabled
         if sound_enabled:
             sound_btn.config(image=sound_on_image)
-            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.set_volume(1.0)
         else:
             sound_btn.config(image=sound_off_image)
             pygame.mixer.music.set_volume(0.0)
@@ -125,7 +121,7 @@ def play_video_with_audio(video_path, audio_path):
         if quit_image:
             video_player.stop()
             pygame.mixer.music.stop()
-            video_player.destroy()
+            video_player.quit()
             root.destroy()  # To completely close the application
     
     def stop_video():
@@ -133,7 +129,7 @@ def play_video_with_audio(video_path, audio_path):
         if stop_image:
             video_player.stop()
             pygame.mixer.music.stop()
-            video_player.destroy()
+            video_player.quit()
             root.deiconify()
 
     def duration(event):
@@ -145,15 +141,11 @@ def play_video_with_audio(video_path, audio_path):
 
     def update_slide(event):
         val.set(video_player.current_duration())
-        # pygame.mixer.music.play(start=video_player.current_duration())
-
-    def update_current_time(event):
-        current_time = video_player.current_duration()
-        current_time_label.config(text=str(datetime.timedelta(seconds=current_time)))
+        pygame.mixer.music.play(start=video_player.current_duration())
 
     def seek(value):
-        video_player.seek(value)
-        pygame.mixer.music.play(start=value)
+        video_player.seek(int(value))
+        pygame.mixer.music.play(start=int(value))
         
     def skip(value:int):
         global new_position
@@ -163,7 +155,7 @@ def play_video_with_audio(video_path, audio_path):
         pygame.mixer.music.play(start=int(new_position))
             
 
-    def video_ended(event):
+    def video_ended():
         slider.set(slider["to"])
         video_player.stop()
         pygame.mixer.music.stop()
@@ -178,15 +170,15 @@ def play_video_with_audio(video_path, audio_path):
     slider = tk.Scale(g3, variable=val,from_=0, to=0, orient="horizontal", command=seek)
     slider.pack(side="left", fill="x", expand=True)
 
-    current_time_label = tk.Label(g3, text="0:00:00")
-    current_time_label.pack(side="left")
+    start_time = tk.Label(g3, text=str(datetime.timedelta(seconds=0)))
+    start_time.pack(side="left")
 
     backward = tk.PhotoImage(file="backward.png")
     back_btn = tk.Button(control_frame, image=backward, command= lambda: skip(-10))
     back_btn.grid(row=1, column=0, columnspan=1, padx=10, sticky="ew")
 
     forward = tk.PhotoImage(file="forward.png")
-    forward_btn = tk.Button(control_frame, image=forward, command= lambda: skip(5))
+    forward_btn = tk.Button(control_frame, image=forward, command= lambda: skip(10))
     forward_btn.grid(row=1, column=1, columnspan=1, padx=10, sticky="ew")
     
     sound_on_image = tk.PhotoImage(file="sound_on.png")
@@ -228,13 +220,11 @@ def play_video_with_audio(video_path, audio_path):
     
     stop_image = tk.PhotoImage(file="stop.png")
     stop_btn = tk.Button(control_frame, image=stop_image, command=stop_video)
-    stop_btn.grid(row=1, column=8, columnspan=1,padx=10, sticky="ew")
+    stop_btn.grid(row=1, column=8, columnspan=1,padx=20, sticky="ew")
    
     video_player.bind("<<Duration>>", lambda event: duration(event))
-    video_player.bind("<<SecondChanged>>", lambda event: update_current_time())
     video_player.bind("<<SecondChanged>>", update_slide)
     video_player.bind("<<Ended>>", video_ended)
-   
     
 
 
@@ -294,5 +284,5 @@ convert_button.grid(row=0, column=3, padx=10, pady=10)
 
 
 
-root.mainloop()
+root.tk.mainloop()
 
